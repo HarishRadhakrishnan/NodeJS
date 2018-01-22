@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Employee Directory App</title>
+	<script src="public/js/angular.js"></script>
+	<script src="public/js/jquery-3.2.0.js"></script>
+	<script src="public/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="public/css/bootstrap.min.css"/>
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+	<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+	<script>
+	  $(function() {
+	    var datepicker=$("#datepicker").datepicker(
+	                    {changeMonth:true,changeYear:true,maxDate:"-1M -1D -1Y",dateFormat:"yy-mm-dd"}
+	                                              );
+	    $("#datepicker").bind("keydown", function (event) {
+	       event.preventDefault();
+	     });
+	  });
+	  
+		angular.module("app",[])
+		.controller("empcontroller",function($scope,$http){
+			$scope.title="edureka! MEAN Application - Employee Directory App";
+			$scope.emplist=null;
+			$scope.name="";
+			$scope.email="";
+			$scope.dob="";
+			$scope.dept="";
+			$scope.gender="";
+			$scope.age="";
+			var refresh=function(){
+				$http.get("/emplist")
+				.success(successHandler)
+				.error(errorHandler);
+			};
+			refresh();
+         function successHandler(r,s,x){
+			$scope.emplist=r;  
+         };
+         function errorHandler(e,s,x){
+			alert("something went wrong" + e);  
+         };
+         
+         function ageCalculator(){
+        	var dob = $('#datepicker').val();
+         	dob = new Date(dob);
+         	var today = new Date();
+         	$scope.age = Math.floor((today-dob) / (365.25 * 24 * 60 * 60 * 1000));	 
+         }
+         
+         $scope.addEmp=function(){
+        	ageCalculator();
+         	var data={
+         		name:$scope.name,
+         		email:$scope.email,
+         		dob:$('#datepicker').val(),
+         		dept:$scope.dept,
+         		gender:$scope.gender,
+         		age:JSON.stringify($scope.age)
+         	};
+         	$http.post("/emplist",data)
+				.success(function(r,s,x){
+				console.log("data updated on the server");
+				$scope.name="";
+				$scope.email="";
+				$scope.dob=null;
+				$scope.dept="";
+				$scope.gender="";
+				$scope.age="";
+				refresh();
+			})
+				.error(errorHandler);
+			};
+			//*********************************************************//
+			$scope.deleteEmp=function(eid){
+				$http.post("/emplist/"+eid)
+				.success(function(r,s,x){
+				console.log("data deleted from the server");
+				refresh();
+			})
+				.error(errorHandler);
+			};
+			//*********************************************************//
+			$scope.editEmp=function(eid){
+				$http.get("/emplist/"+eid)
+				.success(function(r,s,x){
+				$scope.name=r.name;
+				$scope.email=r.email;
+				$scope.dob=r.dob;
+				$scope.dept=r.dept;
+				$scope.gender=r.gender;
+				$scope.age=r.age;
+				$scope.eid=r._id;
+			})
+				.error(errorHandler);
+				
+			};
+			//*****************************************************************//
+			$scope.updateEmp=function(){
+				ageCalculator();
+				var data={
+					name:$scope.name,
+	         		email:$scope.email,
+	         		dob:$('#datepicker').val(),
+	         		dept:$scope.dept,
+	         		gender:$scope.gender,
+	         		age:$scope.age
+				};
+				$http.put("/emplist/"+$scope.eid,data)
+				.success(function(r,s,x){
+					$scope.name="";
+					$scope.email="";
+					$scope.dob=null;
+					$scope.dept="";
+					$scope.gender="";
+					$scope.age="";
+					refresh();
+			})
+				.error(errorHandler);
+			};
+		});
+	</script>
+</head>
+<body class="container" ng-app='app' ng-controller='empcontroller'>
+	<br>
+	<h1 align="center">{{title}}</h1>
+	<br>
+	<br>
+	<table class="table">
+			<tr>
+				<td>Name</td>
+				<td>Email</td>
+				<td>Date of Birth</td>
+				<td>Department</td>
+				<td>Gender</td>
+				<td>Age</td>
+			</tr>
+			<tr>
+			<form class="form-inline">
+				<div class="form-group">
+					<td><input type="text" class="form-control" ng-model="name" placeholder="Name"/></td>
+					<td><input type="text" class="form-control" ng-model="email" placeholder="abc@xyz.com"/></td>
+					<td><input type="text" id="datepicker" class="form-control" ng-model="dob" placeholder="YYYY-MM-DD"/></td>
+					<td><input type="text" class="form-control" ng-model="dept" placeholder="Department"/></td>
+					<td><input type="text" class="form-control" ng-model="gender" placeholder="Gender"/></td>
+					<td><input type="text" class="form-control" ng-model="age" disabled placeholder="Age"/></td>
+					<td><button class="btn btn-success" ng-click="addEmp()">Add Employee</button></td>
+					<td><button class="btn btn-success" ng-click="updateEmp()">Update Employee</button></td>
+				</div>
+			</form>
+			</tr>
+			<tr ng-repeat="emp in emplist">
+				<td>{{ emp.name }}</td>
+				<td>{{ emp.email }}</td>
+				<td>{{ emp.dob }}</td>
+				<td>{{ emp.dept }}</td>
+				<td>{{ emp.gender }}</td>
+				<td>{{ emp.age }}</td>
+				<td><button class="btn btn-danger" ng-click="deleteEmp(emp._id)">delete</button></td>
+				<td><button class="btn btn-primary" ng-click="editEmp(emp._id)">edit</button></td>
+			</tr>
+	</table>
+</body>
+</html>
